@@ -1,0 +1,2471 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TrueLab — Gestão de Custos de Impressão 3D</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0d0f14;
+  --bg2: #13161e;
+  --bg3: #1a1e29;
+  --bg4: #222736;
+  --border: #2a3048;
+  --border2: #333a52;
+  --text: #e8eaf2;
+  --text2: #8b92b3;
+  --text3: #555e80;
+  --accent: #5b73ff;
+  --accent2: #7b8fff;
+  --accent-glow: rgba(91,115,255,0.18);
+  --green: #22c97a;
+  --green-bg: rgba(34,201,122,0.1);
+  --orange: #f59e0b;
+  --orange-bg: rgba(245,158,11,0.1);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.1);
+  --yellow: #eab308;
+  --radius: 10px;
+  --radius-lg: 16px;
+  --sidebar-w: 220px;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --transition: 0.18s cubic-bezier(.4,0,.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── SIDEBAR ── */
+#sidebar {
+  width: var(--sidebar-w);
+  min-height: 100vh;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  transition: transform var(--transition);
+}
+.sidebar-logo {
+  padding: 24px 20px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo .logo-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #5b73ff, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.sidebar-logo .logo-sub {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+.nav-section {
+  padding: 8px 16px 4px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: 13.5px;
+  font-weight: 500;
+  border-radius: 0;
+  transition: color var(--transition), background var(--transition);
+  position: relative;
+  user-select: none;
+}
+.nav-item:hover { color: var(--text); background: var(--bg3); }
+.nav-item.active {
+  color: var(--accent2);
+  background: var(--accent-glow);
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.nav-icon { font-size: 15px; width: 18px; text-align: center; }
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+}
+
+/* ── MAIN ── */
+#main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.topbar {
+  height: 56px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.topbar-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  flex: 1;
+  letter-spacing: -0.3px;
+}
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+#page-content { flex: 1; padding: 28px; }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  user-select: none;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: var(--accent2); box-shadow: 0 0 0 3px var(--accent-glow); }
+.btn-secondary {
+  background: var(--bg4);
+  color: var(--text2);
+  border-color: var(--border2);
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--accent); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text2);
+  border-color: transparent;
+}
+.btn-ghost:hover { background: var(--bg3); color: var(--text); }
+.btn-danger {
+  background: var(--red-bg);
+  color: var(--red);
+  border-color: rgba(239,68,68,0.25);
+}
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-xs { padding: 3px 8px; font-size: 11px; border-radius: 6px; }
+.btn-icon { padding: 7px; border-radius: 8px; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ── STAT CARDS ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.stat-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  border-radius: 2px 2px 0 0;
+}
+.stat-card.accent::before { background: var(--accent); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.orange::before { background: var(--orange); }
+.stat-card.red::before { background: var(--red); }
+.stat-label {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+.stat-value.mono { font-family: var(--font-mono); font-size: 22px; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ── FORM ELEMENTS ── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.form-control {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-control::placeholder { color: var(--text3); }
+select.form-control { cursor: pointer; }
+select.form-control option { background: var(--bg3); }
+textarea.form-control { resize: vertical; min-height: 72px; }
+.form-row { display: grid; gap: 14px; }
+.form-row-2 { grid-template-columns: 1fr 1fr; }
+.form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+.form-section-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  margin: 20px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── TOGGLE ── */
+.toggle-wrap { display: flex; align-items: center; gap: 10px; }
+.toggle {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  cursor: pointer;
+}
+.toggle input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 11px;
+  transition: all var(--transition);
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px; height: 16px;
+  left: 2px; top: 2px;
+  background: var(--text3);
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+.toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
+.toggle input:checked + .toggle-slider::before { transform: translateX(18px); background: #fff; }
+.toggle-label { font-size: 13px; color: var(--text2); cursor: pointer; }
+
+/* ── TABLE ── */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead { background: var(--bg3); }
+th {
+  padding: 11px 14px;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+th:hover { color: var(--text2); }
+td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+tr:last-child td { border-bottom: none; }
+tbody tr { transition: background var(--transition); }
+tbody tr:hover { background: var(--bg3); }
+tbody tr.row-red { background: rgba(239,68,68,0.04); }
+tbody tr.row-orange { background: rgba(245,158,11,0.04); }
+tbody tr.row-green { background: rgba(34,201,122,0.04); }
+.sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-size: 9px; }
+th.sorted .sort-icon { opacity: 1; color: var(--accent2); }
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.badge-green { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,201,122,0.2); }
+.badge-orange { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(245,158,11,0.2); }
+.badge-red { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+.badge-accent { background: var(--accent-glow); color: var(--accent2); border: 1px solid rgba(91,115,255,0.2); }
+.badge-neutral { background: var(--bg4); color: var(--text2); border: 1px solid var(--border2); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.15s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.2s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5);
+}
+.modal-lg { max-width: 860px; }
+@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.btn-close {
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  border-radius: 6px;
+  transition: color var(--transition), background var(--transition);
+}
+.btn-close:hover { color: var(--text); background: var(--bg4); }
+
+/* ── TOAST ── */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  animation: toastIn 0.25s cubic-bezier(.4,0,.2,1);
+  max-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error { border-left: 3px solid var(--red); }
+.toast.info { border-left: 3px solid var(--accent); }
+@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+
+/* ── SEARCH / FILTER BAR ── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-wrap { position: relative; flex: 1; min-width: 200px; }
+.search-wrap .icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 14px; }
+.search-wrap .form-control { padding-left: 32px; }
+.filter-select { min-width: 140px; }
+
+/* ── INLINE EDIT ── */
+.inline-edit-wrap { display: flex; align-items: center; gap: 4px; }
+.inline-price {
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  width: 80px;
+  text-align: right;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.inline-price:focus { border-color: var(--accent); }
+
+/* ── PRICE MODE TABS ── */
+.mode-tabs {
+  display: flex;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+  gap: 3px;
+}
+.mode-tab {
+  flex: 1;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text3);
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+}
+.mode-tab.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(91,115,255,0.35);
+}
+
+/* ── ITEM LIST ── */
+.item-list { display: flex; flex-direction: column; gap: 8px; }
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.item-row-info { flex: 1; font-size: 13px; }
+.item-row-label { font-weight: 600; color: var(--text); }
+.item-row-sub { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+.item-row-qty { width: 60px; }
+.item-row-cost { font-family: var(--font-mono); font-size: 12px; color: var(--text2); min-width: 70px; text-align: right; }
+.item-row-remove {
+  background: none;
+  border: none;
+  color: var(--red);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background var(--transition);
+  line-height: 1;
+}
+.item-row-remove:hover { background: var(--red-bg); }
+
+/* ── FILAMENT MULTI-SELECT ── */
+.fil-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.fil-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  color: var(--text2);
+}
+.fil-chip:hover { border-color: var(--accent); color: var(--text); }
+.fil-chip.selected { background: var(--accent-glow); border-color: var(--accent); color: var(--accent2); }
+.fil-chip .fil-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text3); }
+
+/* ── FILAMENT BREAKDOWN TABLE ── */
+.fil-breakdown { margin-top: 20px; }
+.fil-breakdown-title {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+.fil-breakdown table { border: 1px solid var(--border); border-radius: var(--radius); }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+  color: var(--text3);
+}
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-title { font-size: 18px; font-weight: 700; color: var(--text2); margin-bottom: 8px; font-family: var(--font-display); }
+.empty-sub { font-size: 13px; margin-bottom: 24px; }
+
+/* ── CRITICAL LIST ── */
+.critical-list { display: flex; flex-direction: column; gap: 6px; }
+.critical-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  font-size: 13px;
+}
+.critical-item-name { font-weight: 600; }
+.critical-item-info { font-size: 11px; color: var(--text3); font-family: var(--font-mono); }
+
+/* ── BACKUP SCREEN ── */
+.backup-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 520px;
+}
+.backup-card h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.backup-card p { font-size: 13px; color: var(--text2); }
+
+/* ── HAMBURGER ── */
+#hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background var(--transition);
+}
+#hamburger:hover { background: var(--bg4); }
+#hamburger span {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text2);
+  border-radius: 2px;
+  transition: all var(--transition);
+}
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0,0,0,0.5);
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── CALC PREVIEW ── */
+.calc-preview {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-top: 12px;
+}
+.calc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+}
+.calc-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+.calc-row-label { color: var(--text2); }
+.calc-row-value { font-family: var(--font-mono); font-weight: 500; }
+.calc-total { font-weight: 700; font-size: 14px; color: var(--text); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  #sidebar { transform: translateX(-100%); }
+  #sidebar.open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.5); }
+  #main { margin-left: 0; }
+  #hamburger { display: flex; }
+  .form-row-3 { grid-template-columns: 1fr 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 520px) {
+  #page-content { padding: 16px; }
+  .form-row-2, .form-row-3 { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr; }
+  .modal { border-radius: var(--radius); }
+}
+
+/* ── MISC ── */
+.mono { font-family: var(--font-mono); }
+.text-green { color: var(--green); }
+.text-red { color: var(--red); }
+.text-orange { color: var(--orange); }
+.text-accent { color: var(--accent2); }
+.text-muted { color: var(--text3); }
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.flex { display: flex; align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mt-16 { margin-top: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+@media (max-width: 700px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+.tag {
+  display: inline-block;
+  background: var(--bg4);
+  border: 1px solid var(--border2);
+  border-radius: 5px;
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--text2);
+  font-family: var(--font-mono);
+}
+.actions-cell { display: flex; gap: 5px; }
+.safe-mode-banner {
+  background: var(--orange-bg);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--orange);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR OVERLAY -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-name">TrueLab</div>
+    <div class="logo-sub">Gestão de Impressão 3D</div>
+  </div>
+  <nav>
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="nav-icon">⬡</span> Dashboard
+    </div>
+    <div class="nav-item" data-page="products" onclick="navigate('products')">
+      <span class="nav-icon">▣</span> Produtos
+    </div>
+    <div class="nav-section">Cadastros</div>
+    <div class="nav-item" data-page="filaments" onclick="navigate('filaments')">
+      <span class="nav-icon">◎</span> Filamentos
+    </div>
+    <div class="nav-item" data-page="boxes" onclick="navigate('boxes')">
+      <span class="nav-icon">▪</span> Caixas / Embalagens
+    </div>
+    <div class="nav-item" data-page="additionals" onclick="navigate('additionals')">
+      <span class="nav-icon">◈</span> Itens Adicionais
+    </div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-page="settings" onclick="navigate('settings')">
+      <span class="nav-icon">⚙</span> Configurações
+    </div>
+    <div class="nav-item" data-page="backup" onclick="navigate('backup')">
+      <span class="nav-icon">⇅</span> Backup / Dados
+    </div>
+  </nav>
+  <div class="sidebar-footer">v1.0.0 • Offline Mode</div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <header class="topbar">
+    <div id="hamburger" onclick="toggleSidebar()">
+      <span></span><span></span><span></span>
+    </div>
+    <div class="topbar-title" id="topbar-title">Dashboard</div>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </header>
+  <div id="page-content"></div>
+</main>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════
+let DB = {
+  version: '1.0.0',
+  settings: {},
+  filaments: [],
+  boxes: [],
+  additionalItems: [],
+  products: [],
+  createdAt: '',
+  updatedAt: '',
+  lastExport: ''
+};
+
+const DEFAULT_SETTINGS = {
+  kwh: 0.95,
+  watts: 120,
+  markupMin: 150,
+  markupMid: 200,
+  wastePct: 10,
+  shopeePct: 20,
+  shopeeFixed: 4,
+  storeName: 'TrueLab',
+  currency: 'BRL'
+};
+
+let currentPage = 'dashboard';
+let safeMode = false;
+let sortConfig = { col: '', dir: 1 };
+let productFilters = { search: '', cat: '', status: '' };
+let editingProduct = null;
+let editingFilament = null;
+let editingBox = null;
+let editingAdditional = null;
+let tempProductFilaments = [];
+let tempProductAdditionals = [];
+let tempProductMode = 'fixed';
+
+// ══════════════════════════════════════════════════
+//  STORAGE
+// ══════════════════════════════════════════════════
+function loadData() {
+  try {
+    const raw = localStorage.getItem('truelab_3d');
+    if (raw) {
+      DB = JSON.parse(raw);
+      if (!DB.settings) DB.settings = {};
+      Object.keys(DEFAULT_SETTINGS).forEach(k => {
+        if (DB.settings[k] === undefined) DB.settings[k] = DEFAULT_SETTINGS[k];
+      });
+    } else {
+      initDefaultData();
+    }
+  } catch(e) {
+    console.error('loadData error', e);
+    initDefaultData();
+  }
+}
+
+function saveData() {
+  DB.updatedAt = new Date().toISOString();
+  try {
+    localStorage.setItem('truelab_3d', JSON.stringify(DB));
+  } catch(e) {
+    showToast('Erro ao salvar dados!', 'error');
+  }
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function initDefaultData() {
+  DB.settings = { ...DEFAULT_SETTINGS };
+  DB.createdAt = new Date().toISOString();
+  DB.updatedAt = DB.createdAt;
+
+  DB.filaments = [
+    { id: genId(), name: 'PETG Marrom Masterprint', color: '#8B5E3C', material: 'PETG', brand: 'Masterprint', weightG: 1000, price: 100, obs: '' },
+    { id: genId(), name: 'PETG Preto Masterprint', color: '#1a1a1a', material: 'PETG', brand: 'Masterprint', weightG: 1000, price: 100, obs: '' },
+    { id: genId(), name: 'PETG Cinza Masterprint', color: '#888888', material: 'PETG', brand: 'Masterprint', weightG: 1000, price: 110, obs: '' },
+  ];
+
+  DB.boxes = [
+    { id: genId(), name: 'Caixa 16x11x6', l: 16, w: 11, h: 6, cost: 1.50, obs: '' },
+    { id: genId(), name: 'Caixa 15x10x10', l: 15, w: 10, h: 10, cost: 1.70, obs: '' },
+    { id: genId(), name: 'Caixa 24x15x10', l: 24, w: 15, h: 10, cost: 2.50, obs: '' },
+  ];
+
+  DB.additionalItems = [
+    { id: genId(), name: 'Ímã de neodímio', type: 'ímã', cost: 0.35, obs: '' },
+    { id: genId(), name: 'Fita dupla face', type: 'fita', cost: 0.20, obs: '' },
+    { id: genId(), name: 'Parafuso', type: 'parafuso', cost: 0.10, obs: '' },
+    { id: genId(), name: 'Pé de silicone', type: 'silicone', cost: 0.25, obs: '' },
+  ];
+
+  const filMarrom = DB.filaments[0].id;
+  const filPreto = DB.filaments[1].id;
+  const filCinza = DB.filaments[2].id;
+  const boxId = DB.boxes[0].id;
+  const ima = DB.additionalItems[0].id;
+
+  DB.products = [
+    {
+      id: genId(),
+      name: 'Ímã de geladeira personalizado',
+      sku: 'IMA-GEL-001',
+      category: 'Decoração',
+      printHours: 1,
+      printMinutes: 20,
+      grams: 18,
+      filamentIds: [filMarrom, filPreto, filCinza],
+      defaultFilamentId: filMarrom,
+      boxId: boxId,
+      additionals: [{ itemId: ima, qty: 2 }],
+      otherCosts: 0.50,
+      mode: 'fixed',
+      salePrice: 19.90,
+      markupDesired: 150,
+      rounding: 'none',
+      obs: ''
+    }
+  ];
+
+  saveData();
+}
+
+// ══════════════════════════════════════════════════
+//  CALCULATIONS
+// ══════════════════════════════════════════════════
+function getSettings() {
+  return DB.settings;
+}
+
+function getFilamentCostPerG(filament) {
+  if (!filament || !filament.weightG || filament.weightG === 0) return 0;
+  return filament.price / filament.weightG;
+}
+
+function calculateProductByFilament(product, filamentId) {
+  const s = getSettings();
+  const filament = DB.filaments.find(f => f.id === filamentId);
+  if (!filament) return null;
+
+  const cpg = getFilamentCostPerG(filament);
+  const custoFilamento = product.grams * cpg;
+  const custoFilamentoComPerda = custoFilamento * (1 + s.wastePct / 100);
+
+  const tempoHoras = (product.printHours || 0) + (product.printMinutes || 0) / 60;
+  const consumoKwh = (s.watts / 1000) * tempoHoras;
+  const custoEnergia = consumoKwh * s.kwh;
+
+  const box = DB.boxes.find(b => b.id === product.boxId);
+  const custoCaixa = box ? box.cost : 0;
+
+  let custoAdicionais = 0;
+  (product.additionals || []).forEach(a => {
+    const item = DB.additionalItems.find(i => i.id === a.itemId);
+    if (item) custoAdicionais += item.cost * (a.qty || 1);
+  });
+
+  const custoBase = custoFilamentoComPerda + custoEnergia + custoCaixa + custoAdicionais + (product.otherCosts || 0);
+
+  let salePrice = product.salePrice || 0;
+
+  if (product.mode === 'markup') {
+    const md = product.markupDesired || s.markupMin;
+    let suggested = (custoBase * (1 + md / 100) + s.shopeeFixed) / (1 - s.shopeePct / 100);
+    suggested = applyRounding(suggested, product.rounding);
+    salePrice = suggested;
+  }
+
+  const taxaShopee = salePrice * s.shopeePct / 100 + s.shopeeFixed;
+  const lucroLiquido = salePrice - custoBase - taxaShopee;
+  const margemPct = salePrice > 0 ? (lucroLiquido / salePrice) * 100 : 0;
+  const markupReal = custoBase > 0 ? ((salePrice - custoBase) / custoBase) * 100 : 0;
+
+  return {
+    filamentId,
+    filamentName: filament.name,
+    filamentColor: filament.color,
+    custoFilamento: custoFilamentoComPerda,
+    custoEnergia,
+    custoCaixa,
+    custoAdicionais,
+    custoBase,
+    salePrice,
+    taxaShopee,
+    lucroLiquido,
+    margemPct,
+    markupReal,
+    status: getMarkupStatus(markupReal)
+  };
+}
+
+function calculateProduct(product) {
+  const defaultFil = product.defaultFilamentId || (product.filamentIds && product.filamentIds[0]);
+  const main = calculateProductByFilament(product, defaultFil);
+  if (!main) return null;
+
+  const variants = (product.filamentIds || []).map(fid => calculateProductByFilament(product, fid)).filter(Boolean);
+
+  const costs = variants.map(v => v.custoBase);
+  const profits = variants.map(v => v.lucroLiquido);
+
+  return {
+    ...main,
+    variants,
+    minCost: Math.min(...costs),
+    maxCost: Math.max(...costs),
+    minProfit: Math.min(...profits),
+    maxProfit: Math.max(...profits)
+  };
+}
+
+function getSuggestedPrice(product) {
+  const s = getSettings();
+  const filamentId = product.defaultFilamentId || (product.filamentIds && product.filamentIds[0]);
+  const calc = calculateProductByFilament(product, filamentId);
+  if (!calc) return 0;
+  const md = product.markupDesired || s.markupMin;
+  let suggested = (calc.custoBase * (1 + md / 100) + s.shopeeFixed) / (1 - s.shopeePct / 100);
+  return applyRounding(suggested, product.rounding);
+}
+
+function applyRounding(price, rounding) {
+  switch (rounding) {
+    case 'dot90': return Math.floor(price) + 0.90;
+    case 'dot99': return Math.floor(price) + 0.99;
+    case 'r1': return Math.round(price);
+    case 'r5': return Math.round(price / 5) * 5;
+    default: return Math.round(price * 100) / 100;
+  }
+}
+
+function getMarkupStatus(markupPct) {
+  const s = getSettings();
+  if (markupPct < s.markupMin) return 'red';
+  if (markupPct < s.markupMid) return 'orange';
+  return 'green';
+}
+
+// ══════════════════════════════════════════════════
+//  FORMATTING
+// ══════════════════════════════════════════════════
+function formatCurrency(v) {
+  v = parseFloat(v) || 0;
+  return 'R$ ' + v.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function parseCurrency(str) {
+  if (typeof str === 'number') return str;
+  return parseFloat((str || '').replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+}
+
+function formatPct(v) {
+  return (parseFloat(v) || 0).toFixed(1) + '%';
+}
+
+function formatTime(h, m) {
+  return `${h}h ${m}min`;
+}
+
+// ══════════════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════════════
+const PAGE_TITLES = {
+  dashboard: '⬡ Dashboard',
+  products: '▣ Produtos',
+  filaments: '◎ Filamentos',
+  boxes: '▪ Caixas / Embalagens',
+  additionals: '◈ Itens Adicionais',
+  settings: '⚙ Configurações',
+  backup: '⇅ Backup / Dados'
+};
+
+function navigate(page) {
+  currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
+  document.getElementById('topbar-actions').innerHTML = '';
+  closeSidebar();
+
+  const c = document.getElementById('page-content');
+  switch (page) {
+    case 'dashboard': renderDashboard(c); break;
+    case 'products': renderProductsTable(c); break;
+    case 'filaments': renderFilaments(c); break;
+    case 'boxes': renderBoxes(c); break;
+    case 'additionals': renderAdditionalItems(c); break;
+    case 'settings': renderSettings(c); break;
+    case 'backup': renderBackup(c); break;
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('active');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('active');
+}
+
+// ══════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════
+function renderDashboard(c) {
+  const calcs = DB.products.map(p => ({ p, c: calculateProduct(p) })).filter(x => x.c);
+  const total = calcs.length;
+  const reds = calcs.filter(x => x.c.status === 'red').length;
+  const oranges = calcs.filter(x => x.c.status === 'orange').length;
+  const greens = calcs.filter(x => x.c.status === 'green').length;
+  const avgProfit = total ? calcs.reduce((a, x) => a + x.c.lucroLiquido, 0) / total : 0;
+  const avgMarkup = total ? calcs.reduce((a, x) => a + x.c.markupReal, 0) / total : 0;
+  const avgCost = total ? calcs.reduce((a, x) => a + x.c.custoBase, 0) / total : 0;
+  const avgPrice = total ? calcs.reduce((a, x) => a + x.c.salePrice, 0) / total : 0;
+  const maxProfit = total ? calcs.reduce((a, x) => x.c.lucroLiquido > a.c.lucroLiquido ? x : a) : null;
+  const minProfit = total ? calcs.reduce((a, x) => x.c.lucroLiquido < a.c.lucroLiquido ? x : a) : null;
+
+  const criticals = calcs.filter(x => x.c.status === 'red' || x.c.lucroLiquido < 0);
+
+  c.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card accent">
+        <div class="stat-label">Total de Produtos</div>
+        <div class="stat-value">${total}</div>
+        <div class="stat-sub">cadastrados</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-label">Abaixo do mínimo</div>
+        <div class="stat-value text-red">${reds}</div>
+        <div class="stat-sub">markup insuficiente</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">Alerta laranja</div>
+        <div class="stat-value text-orange">${oranges}</div>
+        <div class="stat-sub">markup intermediário</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">Saudáveis</div>
+        <div class="stat-value text-green">${greens}</div>
+        <div class="stat-sub">markup adequado</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-label">Lucro Médio</div>
+        <div class="stat-value mono" style="font-size:18px">${formatCurrency(avgProfit)}</div>
+        <div class="stat-sub">por produto</div>
+      </div>
+      <div class="stat-card accent">
+        <div class="stat-label">Markup Médio</div>
+        <div class="stat-value">${formatPct(avgMarkup)}</div>
+        <div class="stat-sub">real calculado</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Custo Médio</div>
+        <div class="stat-value mono" style="font-size:18px">${formatCurrency(avgCost)}</div>
+        <div class="stat-sub">custo base</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ticket Médio</div>
+        <div class="stat-value mono" style="font-size:18px">${formatCurrency(avgPrice)}</div>
+        <div class="stat-sub">preço de venda</div>
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-bottom:24px">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">🏆 Maior Lucro</div>
+        </div>
+        ${maxProfit ? `
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">${maxProfit.p.name}</div>
+          <div class="text-green mono" style="font-size:18px;font-weight:700">${formatCurrency(maxProfit.c.lucroLiquido)}</div>
+          <div class="text-muted" style="font-size:11px;margin-top:4px">Markup: ${formatPct(maxProfit.c.markupReal)}</div>
+        ` : '<div class="text-muted">Sem produtos</div>'}
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">⚠ Menor Lucro</div>
+        </div>
+        ${minProfit ? `
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">${minProfit.p.name}</div>
+          <div class="${minProfit.c.lucroLiquido < 0 ? 'text-red' : 'text-orange'} mono" style="font-size:18px;font-weight:700">${formatCurrency(minProfit.c.lucroLiquido)}</div>
+          <div class="text-muted" style="font-size:11px;margin-top:4px">Markup: ${formatPct(minProfit.c.markupReal)}</div>
+        ` : '<div class="text-muted">Sem produtos</div>'}
+      </div>
+    </div>
+
+    ${criticals.length ? `
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚨 Produtos Críticos</div>
+        <button class="btn btn-sm btn-secondary" onclick="navigate('products')">Ver todos</button>
+      </div>
+      <div class="critical-list">
+        ${criticals.slice(0,8).map(x => `
+          <div class="critical-item">
+            <div>
+              <div class="critical-item-name">${x.p.name}</div>
+              <div class="critical-item-info">SKU: ${x.p.sku || '-'} · Markup: ${formatPct(x.c.markupReal)}</div>
+            </div>
+            <span class="badge badge-${x.c.status === 'red' ? 'red' : 'orange'}">${x.c.status === 'red' ? '▼ CRÍTICO' : '▲ ALERTA'}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>` : `
+    <div class="card">
+      <div class="card-header"><div class="card-title">✅ Status dos Produtos</div></div>
+      <div style="padding:20px;text-align:center;color:var(--text3)">
+        ${total === 0 ? 'Nenhum produto cadastrado ainda.' : 'Todos os produtos estão com markup saudável! ✅'}
+      </div>
+    </div>`}
+  `;
+}
+
+// ══════════════════════════════════════════════════
+//  PRODUCTS TABLE
+// ══════════════════════════════════════════════════
+function renderProductsTable(c) {
+  const actions = document.getElementById('topbar-actions');
+  actions.innerHTML = `
+    <div class="toggle-wrap">
+      <label class="toggle" title="Modo seguro: bloqueia edição inline">
+        <input type="checkbox" id="safeModeToggle" ${safeMode ? 'checked' : ''} onchange="toggleSafeMode(this.checked)">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="toggle-label" style="font-size:12px">Modo seguro</span>
+    </div>
+    <button class="btn btn-primary" onclick="openProductModal(null)">+ Novo Produto</button>
+  `;
+
+  let products = [...DB.products];
+
+  // Apply filters
+  if (productFilters.search) {
+    const s = productFilters.search.toLowerCase();
+    products = products.filter(p => p.name.toLowerCase().includes(s) || (p.sku || '').toLowerCase().includes(s));
+  }
+  if (productFilters.cat) {
+    products = products.filter(p => p.category === productFilters.cat);
+  }
+
+  const cats = [...new Set(DB.products.map(p => p.category).filter(Boolean))];
+
+  const calcs = products.map(p => ({ p, calc: calculateProduct(p) }));
+
+  if (productFilters.status) {
+    const st = productFilters.status;
+    calcs.splice(0, calcs.length, ...calcs.filter(x => x.calc && x.calc.status === st));
+  }
+
+  // Sort
+  if (sortConfig.col) {
+    calcs.sort((a, b) => {
+      let va, vb;
+      switch (sortConfig.col) {
+        case 'name': va = a.p.name; vb = b.p.name; break;
+        case 'cost': va = a.calc?.custoBase || 0; vb = b.calc?.custoBase || 0; break;
+        case 'price': va = a.calc?.salePrice || 0; vb = b.calc?.salePrice || 0; break;
+        case 'profit': va = a.calc?.lucroLiquido || 0; vb = b.calc?.lucroLiquido || 0; break;
+        case 'markup': va = a.calc?.markupReal || 0; vb = b.calc?.markupReal || 0; break;
+        case 'margin': va = a.calc?.margemPct || 0; vb = b.calc?.margemPct || 0; break;
+        default: va = 0; vb = 0;
+      }
+      if (typeof va === 'string') return va.localeCompare(vb) * sortConfig.dir;
+      return (va - vb) * sortConfig.dir;
+    });
+  }
+
+  const sortTh = (col, label) => {
+    const active = sortConfig.col === col;
+    const icon = active ? (sortConfig.dir === 1 ? '▲' : '▼') : '⇅';
+    return `<th class="${active ? 'sorted' : ''}" onclick="sortProducts('${col}')">${label} <span class="sort-icon">${icon}</span></th>`;
+  };
+
+  c.innerHTML = `
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <span class="icon">🔍</span>
+        <input class="form-control" placeholder="Buscar por nome ou SKU..." value="${productFilters.search}"
+          oninput="productFilters.search=this.value;renderProductsTable(document.getElementById('page-content'))">
+      </div>
+      <select class="form-control filter-select" onchange="productFilters.cat=this.value;renderProductsTable(document.getElementById('page-content'))">
+        <option value="">Todas categorias</option>
+        ${cats.map(c => `<option value="${c}" ${productFilters.cat === c ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+      <select class="form-control filter-select" onchange="productFilters.status=this.value;renderProductsTable(document.getElementById('page-content'))">
+        <option value="">Todos status</option>
+        <option value="green" ${productFilters.status === 'green' ? 'selected' : ''}>✅ Verde</option>
+        <option value="orange" ${productFilters.status === 'orange' ? 'selected' : ''}>🟡 Laranja</option>
+        <option value="red" ${productFilters.status === 'red' ? 'selected' : ''}>🔴 Vermelho</option>
+      </select>
+      ${safeMode ? '<div class="safe-mode-banner">🔒 Modo seguro ativado — edição inline desabilitada</div>' : ''}
+    </div>
+
+    ${calcs.length === 0 ? `
+      <div class="empty-state">
+        <div class="empty-icon">▣</div>
+        <div class="empty-title">Nenhum produto encontrado</div>
+        <div class="empty-sub">Cadastre seu primeiro produto ou ajuste os filtros.</div>
+        <button class="btn btn-primary" onclick="openProductModal(null)">+ Cadastrar Produto</button>
+      </div>
+    ` : `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            ${sortTh('name', 'Nome')}
+            <th>SKU</th>
+            <th>Cat.</th>
+            <th>Tempo</th>
+            <th>g</th>
+            <th>Filamento</th>
+            <th>Caixa</th>
+            ${sortTh('cost', 'Custo')}
+            ${sortTh('price', 'Preço')}
+            <th>Taxa</th>
+            ${sortTh('profit', 'Lucro')}
+            ${sortTh('margin', 'Margem')}
+            ${sortTh('markup', 'Markup')}
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${calcs.map(({ p, calc }) => {
+            if (!calc) return '';
+            const box = DB.boxes.find(b => b.id === p.boxId);
+            const fil = DB.filaments.find(f => f.id === p.defaultFilamentId);
+            const rowClass = `row-${calc.status}`;
+            return `<tr class="${rowClass}" id="tr-${p.id}">
+              <td style="font-weight:600;max-width:200px;overflow:hidden;text-overflow:ellipsis">${p.name}</td>
+              <td><span class="tag">${p.sku || '-'}</span></td>
+              <td><span style="font-size:11px;color:var(--text2)">${p.category || '-'}</span></td>
+              <td class="mono" style="font-size:11px">${formatTime(p.printHours||0, p.printMinutes||0)}</td>
+              <td class="mono" style="font-size:12px">${p.grams}g</td>
+              <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;font-size:12px">
+                ${fil ? `<span style="display:inline-flex;align-items:center;gap:5px">
+                  <span style="width:8px;height:8px;border-radius:50%;background:${fil.color||'#888'};display:inline-block"></span>
+                  ${fil.name.length > 18 ? fil.name.slice(0,18)+'…' : fil.name}
+                </span>` : '-'}
+              </td>
+              <td style="font-size:12px;color:var(--text2)">${box ? box.name : '-'}</td>
+              <td class="mono">${formatCurrency(calc.custoBase)}</td>
+              <td>${safeMode
+                ? `<span class="mono" style="font-weight:600">${formatCurrency(calc.salePrice)}</span>`
+                : `<div class="inline-edit-wrap">
+                    <input class="inline-price" type="text" value="${calc.salePrice.toFixed(2).replace('.',',')}"
+                      onblur="updateInlinePrice('${p.id}', this.value)"
+                      onkeydown="if(event.key==='Enter')this.blur()">
+                   </div>`
+              }</td>
+              <td class="mono" style="color:var(--text3);font-size:12px">${formatCurrency(calc.taxaShopee)}</td>
+              <td class="mono" style="font-weight:700;color:${calc.lucroLiquido >= 0 ? 'var(--green)' : 'var(--red)'}">${formatCurrency(calc.lucroLiquido)}</td>
+              <td class="mono" style="font-size:12px">${formatPct(calc.margemPct)}</td>
+              <td class="mono" style="font-size:12px">${formatPct(calc.markupReal)}</td>
+              <td>
+                <span class="badge badge-${calc.status}">
+                  ${calc.status === 'green' ? '✓ OK' : calc.status === 'orange' ? '▲ ALERTA' : '✕ CRÍTICO'}
+                </span>
+              </td>
+              <td>
+                <div class="actions-cell">
+                  <button class="btn btn-xs btn-secondary" onclick="openProductDetail('${p.id}')" title="Detalhes">👁</button>
+                  <button class="btn btn-xs btn-secondary" onclick="openProductModal('${p.id}')" title="Editar">✏️</button>
+                  <button class="btn btn-xs btn-secondary" onclick="duplicateProduct('${p.id}')" title="Duplicar">⧉</button>
+                  <button class="btn btn-xs btn-danger" onclick="deleteProduct('${p.id}')" title="Excluir">🗑</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    `}
+  `;
+}
+
+function toggleSafeMode(v) { safeMode = v; renderProductsTable(document.getElementById('page-content')); }
+
+function sortProducts(col) {
+  if (sortConfig.col === col) sortConfig.dir *= -1;
+  else { sortConfig.col = col; sortConfig.dir = 1; }
+  renderProductsTable(document.getElementById('page-content'));
+}
+
+function updateInlinePrice(productId, val) {
+  const p = DB.products.find(x => x.id === productId);
+  if (!p) return;
+  const price = parseCurrency(val);
+  if (isNaN(price) || price < 0) return;
+  p.salePrice = price;
+  p.mode = 'fixed';
+  saveData();
+  renderProductsTable(document.getElementById('page-content'));
+  showToast('Preço atualizado!', 'success');
+}
+
+function deleteProduct(id) {
+  const p = DB.products.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`Excluir "${p.name}"? Esta ação não pode ser desfeita.`)) return;
+  DB.products = DB.products.filter(x => x.id !== id);
+  saveData();
+  renderProductsTable(document.getElementById('page-content'));
+  showToast('Produto excluído.', 'info');
+}
+
+function duplicateProduct(id) {
+  const p = DB.products.find(x => x.id === id);
+  if (!p) return;
+  const copy = JSON.parse(JSON.stringify(p));
+  copy.id = genId();
+  copy.name = p.name + ' (cópia)';
+  copy.sku = '';
+  DB.products.push(copy);
+  saveData();
+  renderProductsTable(document.getElementById('page-content'));
+  showToast('Produto duplicado!', 'success');
+}
+
+// ══════════════════════════════════════════════════
+//  PRODUCT DETAIL MODAL
+// ══════════════════════════════════════════════════
+function openProductDetail(id) {
+  const p = DB.products.find(x => x.id === id);
+  if (!p) return;
+  const calc = calculateProduct(p);
+  if (!calc) return;
+  const box = DB.boxes.find(b => b.id === p.boxId);
+
+  const varRows = (calc.variants || []).map(v => `
+    <tr>
+      <td style="font-size:12px">
+        <span style="display:inline-flex;align-items:center;gap:5px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${v.filamentColor||'#888'};display:inline-block"></span>
+          ${v.filamentName}
+        </span>
+      </td>
+      <td class="mono" style="font-size:12px">${formatCurrency(v.custoBase)}</td>
+      <td class="mono" style="font-size:12px">${formatCurrency(v.taxaShopee)}</td>
+      <td class="mono" style="font-size:12px;color:${v.lucroLiquido>=0?'var(--green)':'var(--red)'};font-weight:700">${formatCurrency(v.lucroLiquido)}</td>
+      <td class="mono" style="font-size:12px">${formatPct(v.margemPct)}</td>
+      <td class="mono" style="font-size:12px">${formatPct(v.markupReal)}</td>
+      <td><span class="badge badge-${v.status}">${v.status==='green'?'✓ OK':v.status==='orange'?'▲ ALERTA':'✕ CRÍTICO'}</span></td>
+    </tr>
+  `).join('');
+
+  const html = `
+    <div class="modal-overlay" onclick="if(event.target===this)this.remove()">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">${p.name}</div>
+          <button class="btn-close" onclick="this.closest('.modal-overlay').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="grid-2" style="margin-bottom:16px">
+            <div>
+              <div class="form-label">Informações</div>
+              <div style="font-size:13px;line-height:2">
+                <div><span class="text-muted">SKU:</span> <span class="mono">${p.sku||'-'}</span></div>
+                <div><span class="text-muted">Categoria:</span> ${p.category||'-'}</div>
+                <div><span class="text-muted">Tempo:</span> ${formatTime(p.printHours||0,p.printMinutes||0)}</div>
+                <div><span class="text-muted">Gramas:</span> <span class="mono">${p.grams}g</span></div>
+                <div><span class="text-muted">Caixa:</span> ${box?box.name:'-'}</div>
+              </div>
+            </div>
+            <div>
+              <div class="form-label">Resultado Principal</div>
+              <div class="calc-preview">
+                <div class="calc-row"><span class="calc-row-label">Custo filamento</span><span class="calc-row-value">${formatCurrency(calc.custoFilamento)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Custo energia</span><span class="calc-row-value">${formatCurrency(calc.custoEnergia)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Embalagem</span><span class="calc-row-value">${formatCurrency(calc.custoCaixa)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Adicionais</span><span class="calc-row-value">${formatCurrency(calc.custoAdicionais)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Outros</span><span class="calc-row-value">${formatCurrency(p.otherCosts||0)}</span></div>
+                <div class="calc-row calc-total"><span>Custo Base</span><span>${formatCurrency(calc.custoBase)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Preço venda</span><span class="calc-row-value" style="color:var(--accent2)">${formatCurrency(calc.salePrice)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Taxa Shopee</span><span class="calc-row-value text-orange">${formatCurrency(calc.taxaShopee)}</span></div>
+                <div class="calc-row calc-total"><span>Lucro líquido</span><span style="color:${calc.lucroLiquido>=0?'var(--green)':'var(--red)'}">${formatCurrency(calc.lucroLiquido)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Margem</span><span class="calc-row-value">${formatPct(calc.margemPct)}</span></div>
+                <div class="calc-row"><span class="calc-row-label">Markup real</span><span class="calc-row-value">${formatPct(calc.markupReal)}</span></div>
+              </div>
+            </div>
+          </div>
+          ${calc.variants && calc.variants.length > 1 ? `
+            <div class="fil-breakdown">
+              <div class="fil-breakdown-title">Resultado por Filamento</div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Filamento</th><th>Custo Base</th><th>Taxa Shopee</th><th>Lucro Líquido</th><th>Margem</th><th>Markup</th><th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>${varRows}</tbody>
+                </table>
+              </div>
+            </div>
+          ` : ''}
+          ${p.obs ? `<div style="margin-top:16px"><div class="form-label">Observações</div><div style="font-size:13px;color:var(--text2)">${p.obs}</div></div>` : ''}
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Fechar</button>
+          <button class="btn btn-primary" onclick="this.closest('.modal-overlay').remove();openProductModal('${p.id}')">Editar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// ══════════════════════════════════════════════════
+//  PRODUCT MODAL
+// ══════════════════════════════════════════════════
+function openProductModal(id) {
+  editingProduct = id ? DB.products.find(x => x.id === id) : null;
+  const p = editingProduct ? JSON.parse(JSON.stringify(editingProduct)) : null;
+
+  tempProductFilaments = p ? [...(p.filamentIds || [])] : [];
+  tempProductAdditionals = p ? JSON.parse(JSON.stringify(p.additionals || [])) : [];
+  tempProductMode = p ? (p.mode || 'fixed') : 'fixed';
+
+  const cats = [...new Set(DB.products.map(x => x.category).filter(Boolean))];
+
+  const html = `
+    <div class="modal-overlay" id="productModalOverlay">
+      <div class="modal modal-lg">
+        <div class="modal-header">
+          <div class="modal-title">${id ? 'Editar Produto' : 'Novo Produto'}</div>
+          <button class="btn-close" onclick="document.getElementById('productModalOverlay').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-section-title">Informações Básicas</div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Nome do Produto *</label>
+              <input class="form-control" id="p_name" value="${p?.name||''}" placeholder="Ex: Ímã de geladeira personalizado">
+            </div>
+            <div class="form-group">
+              <label class="form-label">SKU / Código</label>
+              <input class="form-control" id="p_sku" value="${p?.sku||''}" placeholder="Ex: IMA-GEL-001">
+            </div>
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Categoria</label>
+              <input class="form-control" id="p_cat" list="cat-list" value="${p?.category||''}" placeholder="Ex: Decoração">
+              <datalist id="cat-list">${cats.map(c=>`<option value="${c}">`).join('')}</datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Observações</label>
+              <input class="form-control" id="p_obs" value="${p?.obs||''}" placeholder="Notas sobre o produto">
+            </div>
+          </div>
+
+          <div class="form-section-title">Impressão</div>
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">Tempo — Horas</label>
+              <input class="form-control" id="p_hours" type="number" min="0" value="${p?.printHours||0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tempo — Minutos</label>
+              <input class="form-control" id="p_min" type="number" min="0" max="59" value="${p?.printMinutes||0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Gramas de filamento</label>
+              <input class="form-control" id="p_grams" type="number" step="0.1" value="${p?.grams||0}" placeholder="18" oninput="updateProductCalcPreview()">
+            </div>
+          </div>
+
+          <div class="form-section-title">Filamentos</div>
+          <div class="form-group">
+            <label class="form-label">Filamentos possíveis (clique para selecionar)</label>
+            <div class="fil-grid" id="filGrid">${renderFilamentChips(tempProductFilaments)}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Filamento padrão para cálculo</label>
+            <select class="form-control" id="p_defFil" onchange="updateProductCalcPreview()">
+              <option value="">— selecione —</option>
+              ${DB.filaments.map(f => `<option value="${f.id}" ${(p?.defaultFilamentId===f.id)?'selected':''}>${f.name}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-section-title">Embalagem</div>
+          <div class="form-group">
+            <select class="form-control" id="p_box" onchange="updateProductCalcPreview()">
+              <option value="">— sem embalagem —</option>
+              ${DB.boxes.map(b => `<option value="${b.id}" ${(p?.boxId===b.id)?'selected':''}>${b.name} — ${formatCurrency(b.cost)}</option>`).join('')}
+            </select>
+          </div>
+
+          <div class="form-section-title">Itens Adicionais</div>
+          <div id="additionalsArea">${renderAdditionalsEditor()}</div>
+          <div style="margin-top:8px">
+            <select class="form-control" id="addItemSelect" style="margin-bottom:6px">
+              <option value="">+ Selecionar item adicional...</option>
+              ${DB.additionalItems.map(i => `<option value="${i.id}">${i.name} — ${formatCurrency(i.cost)}</option>`).join('')}
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="addAdditionalToProduct()">Adicionar</button>
+          </div>
+
+          <div class="form-section-title">Outros Custos Fixos</div>
+          <div class="form-group">
+            <input class="form-control" id="p_other" value="${(p?.otherCosts||0).toFixed(2).replace('.',',')}" placeholder="0,00" oninput="updateProductCalcPreview()">
+            <div class="form-hint">Cola, etiqueta, acabamento, desgaste, etc.</div>
+          </div>
+
+          <div class="form-section-title">Preço de Venda</div>
+          <div style="margin-bottom:14px">
+            <div class="mode-tabs">
+              <button class="mode-tab ${tempProductMode==='fixed'?'active':''}" onclick="setProductMode('fixed')">💰 Preço Fixo</button>
+              <button class="mode-tab ${tempProductMode==='markup'?'active':''}" onclick="setProductMode('markup')">📈 Por Markup</button>
+            </div>
+          </div>
+          <div id="modeFixed" style="${tempProductMode!=='fixed'?'display:none':''}">
+            <div class="form-group">
+              <label class="form-label">Preço de Venda (R$)</label>
+              <input class="form-control" id="p_price" value="${(p?.salePrice||0).toFixed(2).replace('.',',')}" placeholder="19,90" oninput="updateProductCalcPreview()">
+            </div>
+          </div>
+          <div id="modeMarkup" style="${tempProductMode!=='markup'?'display:none':''}">
+            <div class="form-row form-row-2">
+              <div class="form-group">
+                <label class="form-label">Markup desejado (%)</label>
+                <input class="form-control" id="p_markup" type="number" value="${p?.markupDesired||DB.settings.markupMin||150}" oninput="updateProductCalcPreview()">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Arredondamento</label>
+                <select class="form-control" id="p_rounding" onchange="updateProductCalcPreview()">
+                  <option value="none" ${p?.rounding==='none'||!p?.rounding?'selected':''}>Sem arredondamento</option>
+                  <option value="dot90" ${p?.rounding==='dot90'?'selected':''}>Final ,90</option>
+                  <option value="dot99" ${p?.rounding==='dot99'?'selected':''}>Final ,99</option>
+                  <option value="r1" ${p?.rounding==='r1'?'selected':''}>Múltiplo de R$ 1</option>
+                  <option value="r5" ${p?.rounding==='r5'?'selected':''}>Múltiplo de R$ 5</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section-title">Prévia do Cálculo</div>
+          <div id="productCalcPreview"></div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('productModalOverlay').remove()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveProduct()">Salvar Produto</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+  updateProductCalcPreview();
+}
+
+function renderFilamentChips(selected) {
+  return DB.filaments.map(f => `
+    <div class="fil-chip ${selected.includes(f.id) ? 'selected' : ''}" id="fchip_${f.id}" onclick="toggleFilamentChip('${f.id}')">
+      <span class="fil-dot" style="background:${f.color||'#888'}"></span>
+      ${f.name}
+    </div>
+  `).join('');
+}
+
+function toggleFilamentChip(fid) {
+  const idx = tempProductFilaments.indexOf(fid);
+  if (idx >= 0) tempProductFilaments.splice(idx, 1);
+  else tempProductFilaments.push(fid);
+  document.getElementById('filGrid').innerHTML = renderFilamentChips(tempProductFilaments);
+  updateProductCalcPreview();
+}
+
+function renderAdditionalsEditor() {
+  if (tempProductAdditionals.length === 0) return '<div style="color:var(--text3);font-size:13px;padding:8px 0">Nenhum item adicional.</div>';
+  return `<div class="item-list">${tempProductAdditionals.map((a, idx) => {
+    const item = DB.additionalItems.find(i => i.id === a.itemId);
+    if (!item) return '';
+    const total = item.cost * (a.qty || 1);
+    return `<div class="item-row">
+      <div class="item-row-info">
+        <div class="item-row-label">${item.name}</div>
+        <div class="item-row-sub">${formatCurrency(item.cost)} un</div>
+      </div>
+      <input class="form-control item-row-qty" type="number" min="1" value="${a.qty||1}"
+        oninput="tempProductAdditionals[${idx}].qty=parseInt(this.value)||1;document.getElementById('additionalsArea').innerHTML=renderAdditionalsEditor();updateProductCalcPreview()">
+      <div class="item-row-cost">${formatCurrency(total)}</div>
+      <button class="item-row-remove" onclick="tempProductAdditionals.splice(${idx},1);document.getElementById('additionalsArea').innerHTML=renderAdditionalsEditor();updateProductCalcPreview()">✕</button>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+function addAdditionalToProduct() {
+  const sel = document.getElementById('addItemSelect');
+  const iid = sel.value;
+  if (!iid) return;
+  const existing = tempProductAdditionals.find(a => a.itemId === iid);
+  if (existing) { existing.qty = (existing.qty || 1) + 1; }
+  else { tempProductAdditionals.push({ itemId: iid, qty: 1 }); }
+  document.getElementById('additionalsArea').innerHTML = renderAdditionalsEditor();
+  sel.value = '';
+  updateProductCalcPreview();
+}
+
+function setProductMode(mode) {
+  tempProductMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.toggle('active', t.textContent.includes(mode === 'fixed' ? 'Fixo' : 'Markup')));
+  document.getElementById('modeFixed').style.display = mode === 'fixed' ? '' : 'none';
+  document.getElementById('modeMarkup').style.display = mode === 'markup' ? '' : 'none';
+  updateProductCalcPreview();
+}
+
+function updateProductCalcPreview() {
+  const preview = document.getElementById('productCalcPreview');
+  if (!preview) return;
+
+  const grams = parseFloat(document.getElementById('p_grams')?.value) || 0;
+  const hours = parseInt(document.getElementById('p_hours')?.value) || 0;
+  const mins = parseInt(document.getElementById('p_min')?.value) || 0;
+  const defFil = document.getElementById('p_defFil')?.value;
+  const boxId = document.getElementById('p_box')?.value;
+  const otherCosts = parseCurrency(document.getElementById('p_other')?.value);
+  const salePrice = parseCurrency(document.getElementById('p_price')?.value);
+  const markupDesired = parseFloat(document.getElementById('p_markup')?.value) || DB.settings.markupMin;
+  const rounding = document.getElementById('p_rounding')?.value || 'none';
+
+  const tmpProduct = {
+    id: '_tmp',
+    grams,
+    printHours: hours,
+    printMinutes: mins,
+    defaultFilamentId: defFil,
+    filamentIds: defFil ? [defFil] : [],
+    boxId,
+    additionals: tempProductAdditionals,
+    otherCosts,
+    mode: tempProductMode,
+    salePrice,
+    markupDesired,
+    rounding
+  };
+
+  if (!defFil) {
+    preview.innerHTML = '<div class="calc-preview" style="color:var(--text3);text-align:center;padding:20px">Selecione um filamento padrão para ver o cálculo.</div>';
+    return;
+  }
+
+  const calc = calculateProductByFilament(tmpProduct, defFil);
+  if (!calc) return;
+
+  preview.innerHTML = `
+    <div class="calc-preview">
+      <div class="calc-row"><span class="calc-row-label">Custo filamento (c/ desperdício)</span><span class="calc-row-value">${formatCurrency(calc.custoFilamento)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Custo energia</span><span class="calc-row-value">${formatCurrency(calc.custoEnergia)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Embalagem</span><span class="calc-row-value">${formatCurrency(calc.custoCaixa)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Itens adicionais</span><span class="calc-row-value">${formatCurrency(calc.custoAdicionais)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Outros custos</span><span class="calc-row-value">${formatCurrency(otherCosts)}</span></div>
+      <div class="calc-row calc-total"><span>Custo Base</span><span>${formatCurrency(calc.custoBase)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Preço de venda</span><span class="calc-row-value" style="color:var(--accent2);font-weight:700">${formatCurrency(calc.salePrice)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Taxa Shopee</span><span class="calc-row-value text-orange">${formatCurrency(calc.taxaShopee)}</span></div>
+      <div class="calc-row calc-total"><span>Lucro líquido</span><span style="color:${calc.lucroLiquido>=0?'var(--green)':'var(--red)'};font-weight:700">${formatCurrency(calc.lucroLiquido)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Margem líquida</span><span class="calc-row-value">${formatPct(calc.margemPct)}</span></div>
+      <div class="calc-row"><span class="calc-row-label">Markup real</span><span class="calc-row-value"><span class="badge badge-${calc.status}">${formatPct(calc.markupReal)}</span></span></div>
+    </div>
+  `;
+}
+
+function saveProduct() {
+  const name = document.getElementById('p_name').value.trim();
+  if (!name) { showToast('Informe o nome do produto.', 'error'); return; }
+
+  const defFil = document.getElementById('p_defFil').value;
+  const boxId = document.getElementById('p_box').value;
+  const grams = parseFloat(document.getElementById('p_grams').value) || 0;
+  const hours = parseInt(document.getElementById('p_hours').value) || 0;
+  const mins = parseInt(document.getElementById('p_min').value) || 0;
+  const otherCosts = parseCurrency(document.getElementById('p_other').value);
+  const salePrice = parseCurrency(document.getElementById('p_price').value);
+  const markupDesired = parseFloat(document.getElementById('p_markup')?.value) || DB.settings.markupMin;
+  const rounding = document.getElementById('p_rounding')?.value || 'none';
+
+  let filIds = [...tempProductFilaments];
+  if (defFil && !filIds.includes(defFil)) filIds.unshift(defFil);
+
+  const productData = {
+    name,
+    sku: document.getElementById('p_sku').value.trim(),
+    category: document.getElementById('p_cat').value.trim(),
+    obs: document.getElementById('p_obs').value.trim(),
+    printHours: hours,
+    printMinutes: mins,
+    grams,
+    filamentIds: filIds,
+    defaultFilamentId: defFil,
+    boxId: boxId || null,
+    additionals: tempProductAdditionals,
+    otherCosts,
+    mode: tempProductMode,
+    salePrice,
+    markupDesired,
+    rounding
+  };
+
+  if (editingProduct) {
+    const idx = DB.products.findIndex(x => x.id === editingProduct.id);
+    DB.products[idx] = { ...editingProduct, ...productData };
+  } else {
+    DB.products.push({ id: genId(), ...productData });
+  }
+
+  saveData();
+  document.getElementById('productModalOverlay').remove();
+  showToast(editingProduct ? 'Produto atualizado!' : 'Produto cadastrado!', 'success');
+  if (currentPage === 'products') renderProductsTable(document.getElementById('page-content'));
+}
+
+// ══════════════════════════════════════════════════
+//  FILAMENTS
+// ══════════════════════════════════════════════════
+function renderFilaments(c) {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openFilamentModal(null)">+ Novo Filamento</button>
+  `;
+
+  if (DB.filaments.length === 0) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">◎</div><div class="empty-title">Nenhum filamento cadastrado</div><div class="empty-sub">Cadastre os filamentos que você usa.</div><button class="btn btn-primary" onclick="openFilamentModal(null)">+ Cadastrar Filamento</button></div>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Cor</th><th>Nome</th><th>Material</th><th>Marca</th><th>Peso</th><th>Preço Rolo</th><th>Custo/g</th><th>Observações</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${DB.filaments.map(f => `
+            <tr>
+              <td><span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${f.color||'#888'};border:2px solid var(--border2)"></span></td>
+              <td style="font-weight:600">${f.name}</td>
+              <td><span class="badge badge-accent">${f.material}</span></td>
+              <td style="color:var(--text2)">${f.brand}</td>
+              <td class="mono">${f.weightG}g</td>
+              <td class="mono" style="font-weight:600">${formatCurrency(f.price)}</td>
+              <td class="mono text-accent">${formatCurrency(getFilamentCostPerG(f))}/g</td>
+              <td style="font-size:12px;color:var(--text3);max-width:150px;overflow:hidden;text-overflow:ellipsis">${f.obs||'-'}</td>
+              <td>
+                <div class="actions-cell">
+                  <button class="btn btn-xs btn-secondary" onclick="openFilamentModal('${f.id}')">✏️</button>
+                  <button class="btn btn-xs btn-danger" onclick="deleteFilament('${f.id}')">🗑</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openFilamentModal(id) {
+  editingFilament = id ? DB.filaments.find(f => f.id === id) : null;
+  const f = editingFilament;
+  const html = `
+    <div class="modal-overlay" id="filModalOverlay">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${id ? 'Editar Filamento' : 'Novo Filamento'}</div>
+          <button class="btn-close" onclick="document.getElementById('filModalOverlay').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Nome *</label>
+              <input class="form-control" id="f_name" value="${f?.name||''}" placeholder="Ex: PETG Marrom Masterprint">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Cor (hex)</label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="color" id="f_colorPicker" value="${f?.color||'#5b73ff'}" style="width:40px;height:38px;border-radius:8px;border:1px solid var(--border2);background:none;cursor:pointer">
+                <input class="form-control" id="f_color" value="${f?.color||'#5b73ff'}" placeholder="#5b73ff" oninput="document.getElementById('f_colorPicker').value=this.value">
+              </div>
+              <script>document.getElementById('f_colorPicker').oninput=function(){document.getElementById('f_color').value=this.value}<\/script>
+            </div>
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Material</label>
+              <select class="form-control" id="f_mat">
+                ${['PLA','PETG','ABS','TPU','ASA','Outro'].map(m=>`<option ${(f?.material||'PLA')===m?'selected':''}>${m}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Marca</label>
+              <input class="form-control" id="f_brand" value="${f?.brand||''}" placeholder="Ex: Masterprint">
+            </div>
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Peso do rolo (g)</label>
+              <input class="form-control" id="f_weight" type="number" value="${f?.weightG||1000}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Preço do rolo (R$)</label>
+              <input class="form-control" id="f_price" value="${(f?.price||0).toFixed(2).replace('.',',')}">
+            </div>
+          </div>
+          <div id="f_cpg_preview" style="margin:-8px 0 12px;font-size:12px;color:var(--text3);font-family:var(--font-mono)"></div>
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" id="f_obs">${f?.obs||''}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('filModalOverlay').remove()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveFilament()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+
+  const updateCpg = () => {
+    const p = parseCurrency(document.getElementById('f_price').value);
+    const w = parseFloat(document.getElementById('f_weight').value) || 1000;
+    const cpg = w > 0 ? p / w : 0;
+    document.getElementById('f_cpg_preview').textContent = `Custo por grama: ${formatCurrency(cpg)}/g`;
+  };
+  document.getElementById('f_price').addEventListener('input', updateCpg);
+  document.getElementById('f_weight').addEventListener('input', updateCpg);
+  updateCpg();
+}
+
+function saveFilament() {
+  const name = document.getElementById('f_name').value.trim();
+  if (!name) { showToast('Informe o nome do filamento.', 'error'); return; }
+
+  const data = {
+    name,
+    color: document.getElementById('f_color').value,
+    material: document.getElementById('f_mat').value,
+    brand: document.getElementById('f_brand').value.trim(),
+    weightG: parseFloat(document.getElementById('f_weight').value) || 1000,
+    price: parseCurrency(document.getElementById('f_price').value),
+    obs: document.getElementById('f_obs').value.trim()
+  };
+
+  if (editingFilament) {
+    const idx = DB.filaments.findIndex(f => f.id === editingFilament.id);
+    DB.filaments[idx] = { ...editingFilament, ...data };
+  } else {
+    DB.filaments.push({ id: genId(), ...data });
+  }
+
+  saveData();
+  document.getElementById('filModalOverlay').remove();
+  showToast(editingFilament ? 'Filamento atualizado!' : 'Filamento cadastrado!', 'success');
+  renderFilaments(document.getElementById('page-content'));
+}
+
+function deleteFilament(id) {
+  const f = DB.filaments.find(x => x.id === id);
+  if (!f) return;
+  const usedIn = DB.products.filter(p => (p.filamentIds||[]).includes(id)).length;
+  if (usedIn > 0 && !confirm(`Este filamento é usado em ${usedIn} produto(s). Ao excluir, os produtos serão afetados. Continuar?`)) return;
+  if (!confirm(`Excluir "${f.name}"?`)) return;
+  DB.filaments = DB.filaments.filter(x => x.id !== id);
+  saveData();
+  showToast('Filamento excluído.', 'info');
+  renderFilaments(document.getElementById('page-content'));
+}
+
+// ══════════════════════════════════════════════════
+//  BOXES
+// ══════════════════════════════════════════════════
+function renderBoxes(c) {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openBoxModal(null)">+ Nova Embalagem</button>
+  `;
+
+  if (DB.boxes.length === 0) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">▪</div><div class="empty-title">Nenhuma embalagem cadastrada</div><div class="empty-sub">Cadastre caixas e embalagens usadas nos seus produtos.</div><button class="btn btn-primary" onclick="openBoxModal(null)">+ Cadastrar Embalagem</button></div>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Comprimento</th><th>Largura</th><th>Altura</th><th>Custo</th><th>Observações</th><th>Ações</th></tr>
+        </thead>
+        <tbody>
+          ${DB.boxes.map(b => `
+            <tr>
+              <td style="font-weight:600">${b.name}</td>
+              <td class="mono">${b.l} cm</td>
+              <td class="mono">${b.w} cm</td>
+              <td class="mono">${b.h} cm</td>
+              <td class="mono" style="font-weight:600;color:var(--accent2)">${formatCurrency(b.cost)}</td>
+              <td style="font-size:12px;color:var(--text3)">${b.obs||'-'}</td>
+              <td>
+                <div class="actions-cell">
+                  <button class="btn btn-xs btn-secondary" onclick="openBoxModal('${b.id}')">✏️</button>
+                  <button class="btn btn-xs btn-danger" onclick="deleteBox('${b.id}')">🗑</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openBoxModal(id) {
+  editingBox = id ? DB.boxes.find(b => b.id === id) : null;
+  const b = editingBox;
+  const html = `
+    <div class="modal-overlay" id="boxModalOverlay">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${id ? 'Editar Embalagem' : 'Nova Embalagem'}</div>
+          <button class="btn-close" onclick="document.getElementById('boxModalOverlay').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nome *</label>
+            <input class="form-control" id="b_name" value="${b?.name||''}" placeholder="Ex: Caixa 16x11x6">
+          </div>
+          <div class="form-row form-row-3">
+            <div class="form-group">
+              <label class="form-label">Comprimento (cm)</label>
+              <input class="form-control" id="b_l" type="number" step="0.1" value="${b?.l||0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Largura (cm)</label>
+              <input class="form-control" id="b_w" type="number" step="0.1" value="${b?.w||0}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Altura (cm)</label>
+              <input class="form-control" id="b_h" type="number" step="0.1" value="${b?.h||0}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Custo unitário (R$)</label>
+            <input class="form-control" id="b_cost" value="${(b?.cost||0).toFixed(2).replace('.',',')}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" id="b_obs">${b?.obs||''}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('boxModalOverlay').remove()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveBox()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function saveBox() {
+  const name = document.getElementById('b_name').value.trim();
+  if (!name) { showToast('Informe o nome da embalagem.', 'error'); return; }
+  const data = {
+    name,
+    l: parseFloat(document.getElementById('b_l').value) || 0,
+    w: parseFloat(document.getElementById('b_w').value) || 0,
+    h: parseFloat(document.getElementById('b_h').value) || 0,
+    cost: parseCurrency(document.getElementById('b_cost').value),
+    obs: document.getElementById('b_obs').value.trim()
+  };
+  if (editingBox) {
+    const idx = DB.boxes.findIndex(x => x.id === editingBox.id);
+    DB.boxes[idx] = { ...editingBox, ...data };
+  } else {
+    DB.boxes.push({ id: genId(), ...data });
+  }
+  saveData();
+  document.getElementById('boxModalOverlay').remove();
+  showToast(editingBox ? 'Embalagem atualizada!' : 'Embalagem cadastrada!', 'success');
+  renderBoxes(document.getElementById('page-content'));
+}
+
+function deleteBox(id) {
+  const b = DB.boxes.find(x => x.id === id);
+  if (!b || !confirm(`Excluir "${b.name}"?`)) return;
+  DB.boxes = DB.boxes.filter(x => x.id !== id);
+  saveData();
+  showToast('Embalagem excluída.', 'info');
+  renderBoxes(document.getElementById('page-content'));
+}
+
+// ══════════════════════════════════════════════════
+//  ADDITIONAL ITEMS
+// ══════════════════════════════════════════════════
+function renderAdditionalItems(c) {
+  document.getElementById('topbar-actions').innerHTML = `
+    <button class="btn btn-primary" onclick="openAdditionalModal(null)">+ Novo Item</button>
+  `;
+
+  if (DB.additionalItems.length === 0) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">◈</div><div class="empty-title">Nenhum item adicional</div><div class="empty-sub">Cadastre ímãs, parafusos, fitas e outros itens usados nos produtos.</div><button class="btn btn-primary" onclick="openAdditionalModal(null)">+ Cadastrar Item</button></div>`;
+    return;
+  }
+
+  c.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Nome</th><th>Tipo / Categoria</th><th>Custo Unitário</th><th>Observações</th><th>Ações</th></tr>
+        </thead>
+        <tbody>
+          ${DB.additionalItems.map(i => `
+            <tr>
+              <td style="font-weight:600">${i.name}</td>
+              <td><span class="tag">${i.type||'-'}</span></td>
+              <td class="mono" style="font-weight:600;color:var(--accent2)">${formatCurrency(i.cost)}</td>
+              <td style="font-size:12px;color:var(--text3)">${i.obs||'-'}</td>
+              <td>
+                <div class="actions-cell">
+                  <button class="btn btn-xs btn-secondary" onclick="openAdditionalModal('${i.id}')">✏️</button>
+                  <button class="btn btn-xs btn-danger" onclick="deleteAdditional('${i.id}')">🗑</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function openAdditionalModal(id) {
+  editingAdditional = id ? DB.additionalItems.find(x => x.id === id) : null;
+  const i = editingAdditional;
+  const types = ['ímã','parafuso','fita dupla face','porca','etiqueta','brinde','silicone','adesivo','outro'];
+  const html = `
+    <div class="modal-overlay" id="addModalOverlay">
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title">${id ? 'Editar Item' : 'Novo Item Adicional'}</div>
+          <button class="btn-close" onclick="document.getElementById('addModalOverlay').remove()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Nome *</label>
+            <input class="form-control" id="ai_name" value="${i?.name||''}" placeholder="Ex: Ímã de neodímio">
+          </div>
+          <div class="form-row form-row-2">
+            <div class="form-group">
+              <label class="form-label">Tipo / Categoria</label>
+              <input class="form-control" id="ai_type" list="type-list" value="${i?.type||''}" placeholder="Ex: ímã">
+              <datalist id="type-list">${types.map(t=>`<option value="${t}">`).join('')}</datalist>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Custo unitário (R$)</label>
+              <input class="form-control" id="ai_cost" value="${(i?.cost||0).toFixed(2).replace('.',',')}">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Observações</label>
+            <textarea class="form-control" id="ai_obs">${i?.obs||''}</textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('addModalOverlay').remove()">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveAdditional()">Salvar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function saveAdditional() {
+  const name = document.getElementById('ai_name').value.trim();
+  if (!name) { showToast('Informe o nome do item.', 'error'); return; }
+  const data = {
+    name,
+    type: document.getElementById('ai_type').value.trim(),
+    cost: parseCurrency(document.getElementById('ai_cost').value),
+    obs: document.getElementById('ai_obs').value.trim()
+  };
+  if (editingAdditional) {
+    const idx = DB.additionalItems.findIndex(x => x.id === editingAdditional.id);
+    DB.additionalItems[idx] = { ...editingAdditional, ...data };
+  } else {
+    DB.additionalItems.push({ id: genId(), ...data });
+  }
+  saveData();
+  document.getElementById('addModalOverlay').remove();
+  showToast(editingAdditional ? 'Item atualizado!' : 'Item cadastrado!', 'success');
+  renderAdditionalItems(document.getElementById('page-content'));
+}
+
+function deleteAdditional(id) {
+  const i = DB.additionalItems.find(x => x.id === id);
+  if (!i || !confirm(`Excluir "${i.name}"?`)) return;
+  DB.additionalItems = DB.additionalItems.filter(x => x.id !== id);
+  saveData();
+  showToast('Item excluído.', 'info');
+  renderAdditionalItems(document.getElementById('page-content'));
+}
+
+// ══════════════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════════════
+function renderSettings(c) {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const s = DB.settings;
+  c.innerHTML = `
+    <div style="max-width:680px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">⚙ Configurações Globais</div></div>
+
+        <div class="form-section-title">Energia</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">Custo de energia (R$/kWh)</label>
+            <input class="form-control" id="s_kwh" type="number" step="0.001" value="${s.kwh}">
+            <div class="form-hint">A tarifa base Celesc B1 Residencial Normal vigente é 0,69568 R$/kWh sem tributos. Use aqui o valor final aproximado da sua conta, incluindo tributos e bandeiras.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Consumo da impressora (W)</label>
+            <input class="form-control" id="s_watts" type="number" step="1" value="${s.watts}">
+            <div class="form-hint">Consumo médio da impressora em operação.</div>
+          </div>
+        </div>
+
+        <div class="form-section-title">Markup</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">Markup mínimo desejado (%)</label>
+            <input class="form-control" id="s_markupMin" type="number" step="1" value="${s.markupMin}">
+            <div class="form-hint">Abaixo deste valor: 🔴 vermelho.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Markup intermediário (%)</label>
+            <input class="form-control" id="s_markupMid" type="number" step="1" value="${s.markupMid}">
+            <div class="form-hint">Entre mínimo e intermediário: 🟡 laranja. Acima: 🟢 verde.</div>
+          </div>
+        </div>
+
+        <div class="form-section-title">Filamento</div>
+        <div class="form-group">
+          <label class="form-label">Percentual de perda/desperdício (%)</label>
+          <input class="form-control" id="s_waste" type="number" step="0.1" value="${s.wastePct}" style="max-width:200px">
+          <div class="form-hint">Aplicado sobre o custo de filamento de cada produto.</div>
+        </div>
+
+        <div class="form-section-title">Shopee</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">Taxa percentual da Shopee (%)</label>
+            <input class="form-control" id="s_shopeePct" type="number" step="0.1" value="${s.shopeePct}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Taxa fixa da Shopee (R$)</label>
+            <input class="form-control" id="s_shopeeFixed" type="number" step="0.01" value="${s.shopeeFixed}">
+          </div>
+        </div>
+
+        <div class="form-section-title">Loja</div>
+        <div class="form-row form-row-2">
+          <div class="form-group">
+            <label class="form-label">Nome da loja / empresa</label>
+            <input class="form-control" id="s_store" value="${s.storeName||'TrueLab'}">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Moeda</label>
+            <select class="form-control" id="s_currency">
+              <option value="BRL" ${s.currency==='BRL'?'selected':''}>BRL — Real brasileiro</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <button class="btn btn-primary" onclick="saveSettings()">Salvar Configurações</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveSettings() {
+  DB.settings.kwh = parseFloat(document.getElementById('s_kwh').value) || 0.95;
+  DB.settings.watts = parseFloat(document.getElementById('s_watts').value) || 120;
+  DB.settings.markupMin = parseFloat(document.getElementById('s_markupMin').value) || 150;
+  DB.settings.markupMid = parseFloat(document.getElementById('s_markupMid').value) || 200;
+  DB.settings.wastePct = parseFloat(document.getElementById('s_waste').value) || 10;
+  DB.settings.shopeePct = parseFloat(document.getElementById('s_shopeePct').value) || 20;
+  DB.settings.shopeeFixed = parseFloat(document.getElementById('s_shopeeFixed').value) || 4;
+  DB.settings.storeName = document.getElementById('s_store').value.trim() || 'TrueLab';
+  DB.settings.currency = document.getElementById('s_currency').value;
+  saveData();
+
+  // Update logo if store name changed
+  const logoEl = document.querySelector('.logo-name');
+  if (logoEl) logoEl.textContent = DB.settings.storeName;
+
+  showToast('Configurações salvas! Todos os produtos foram recalculados.', 'success');
+}
+
+// ══════════════════════════════════════════════════
+//  BACKUP
+// ══════════════════════════════════════════════════
+function renderBackup(c) {
+  document.getElementById('topbar-actions').innerHTML = '';
+  const counts = {
+    filaments: DB.filaments.length,
+    boxes: DB.boxes.length,
+    additionals: DB.additionalItems.length,
+    products: DB.products.length
+  };
+  c.innerHTML = `
+    <div style="max-width:540px;display:flex;flex-direction:column;gap:16px">
+      <div class="backup-card">
+        <h3>📤 Exportar dados</h3>
+        <p>Exporta todos os dados do sistema em formato JSON. Guarde em local seguro.</p>
+        <div style="font-size:12px;color:var(--text3);font-family:var(--font-mono);background:var(--bg3);border-radius:8px;padding:10px;margin:4px 0">
+          ${counts.filaments} filamentos · ${counts.boxes} embalagens · ${counts.additionals} itens · ${counts.products} produtos
+          ${DB.lastExport ? `<br>Último export: ${new Date(DB.lastExport).toLocaleString('pt-BR')}` : ''}
+        </div>
+        <button class="btn btn-primary" onclick="exportJSON()">⬇ Exportar JSON</button>
+      </div>
+      <div class="backup-card">
+        <h3>📥 Importar dados</h3>
+        <p>Importa um arquivo JSON exportado anteriormente. Os dados atuais serão substituídos após confirmação.</p>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(this)">
+        <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">⬆ Selecionar arquivo JSON</button>
+      </div>
+      <div class="backup-card">
+        <h3>🗑 Limpar todos os dados</h3>
+        <p style="color:var(--red)">Atenção: Esta ação remove todos os dados permanentemente. Exporte um backup antes de prosseguir.</p>
+        <button class="btn btn-danger" onclick="clearAllData()">Limpar tudo</button>
+      </div>
+      <div class="backup-card">
+        <h3>ℹ Informações do sistema</h3>
+        <div style="font-size:12px;font-family:var(--font-mono);color:var(--text2);line-height:2">
+          <div>Versão: ${DB.version}</div>
+          <div>Criado em: ${DB.createdAt ? new Date(DB.createdAt).toLocaleString('pt-BR') : '-'}</div>
+          <div>Atualizado em: ${DB.updatedAt ? new Date(DB.updatedAt).toLocaleString('pt-BR') : '-'}</div>
+          <div>Armazenamento: localStorage</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function exportJSON() {
+  DB.lastExport = new Date().toISOString();
+  saveData();
+  const json = JSON.stringify(DB, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `truelab_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exportado com sucesso!', 'success');
+}
+
+function importJSON(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.settings || !Array.isArray(data.filaments) || !Array.isArray(data.products)) {
+        showToast('Arquivo JSON inválido ou incompleto.', 'error');
+        return;
+      }
+      if (!confirm(`Importar dados do backup?\n\nFilamentos: ${data.filaments.length}\nEmbalagens: ${(data.boxes||[]).length}\nItens: ${(data.additionalItems||[]).length}\nProdutos: ${data.products.length}\n\nOs dados atuais serão substituídos!`)) return;
+      DB = { ...DB, ...data };
+      if (!DB.settings) DB.settings = {};
+      Object.keys(DEFAULT_SETTINGS).forEach(k => {
+        if (DB.settings[k] === undefined) DB.settings[k] = DEFAULT_SETTINGS[k];
+      });
+      saveData();
+      showToast('Dados importados com sucesso!', 'success');
+      navigate('dashboard');
+    } catch(err) {
+      showToast('Erro ao ler o arquivo JSON.', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function handleImport(input) {
+  if (input.files[0]) importJSON(input.files[0]);
+  input.value = '';
+}
+
+function clearAllData() {
+  if (!confirm('⚠ ATENÇÃO: Todos os dados serão apagados permanentemente!\n\nDeseja continuar?')) return;
+  if (!confirm('Tem certeza? Esta ação não pode ser desfeita.')) return;
+  localStorage.removeItem('truelab_3d');
+  initDefaultData();
+  showToast('Dados resetados para o padrão.', 'info');
+  navigate('dashboard');
+}
+
+// ══════════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════════
+function showToast(msg, type = 'info') {
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(20px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// ══════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════
+loadData();
+
+// Update logo from settings
+document.addEventListener('DOMContentLoaded', () => {
+  const logoEl = document.querySelector('.logo-name');
+  if (logoEl && DB.settings.storeName) logoEl.textContent = DB.settings.storeName;
+});
+
+navigate('dashboard');
+
+// Update logo immediately
+const logoEl = document.querySelector('.logo-name');
+if (logoEl && DB.settings.storeName) logoEl.textContent = DB.settings.storeName;
+</script>
+</body>
+</html>
